@@ -3,17 +3,12 @@
 #include <glad/glad.h>
 
 #include <string>
-#include <fstream>
-#include <sstream>
-#include <iostream>
 
-
-class Shader
-{
+class Shader {
 public:
   // 程序ID
-  unsigned int ID = 0;
-
+  unsigned int shaderId = 0;
+public:
   // 构造器读取并构建着色器
   Shader(const char* vertexPath, const char* fragmentPath);
   // 使用/激活程序
