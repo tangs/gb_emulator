@@ -1,17 +1,13 @@
 #include <print>
 #include <iostream>
 
-//#include "ncurses.h"
-
-#include <chrono>
-#include <thread>
-
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
 #include "cartridge.h"
 #include "graphic.h"
 #include "shader.h"
+#include "screen.h"
 
 int refresh(const char* licName, const char* title, Graphic* graphic) {
     constexpr auto PIXEL_SCALE_X = 1;
@@ -60,32 +56,6 @@ void processInput(GLFWwindow *window) {
         glfwSetWindowShouldClose(window, true);
     }
 }
-
-constexpr auto vertexShaderSource = R"(
-#version 330 core
-layout (location = 0) in vec3 aPos;
-layout (location = 1) in vec3 aColor; // 颜色变量的属性位置值为 1
-
-out vec4 vertexColor; // 为片段着色器指定一个颜色输出
-
-void main()
-{
-    gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1);
-    vertexColor = vec4(aColor, 1.0);
-}
-)";
-
-constexpr auto fragmentShaderSource = R"(
-#version 330 core
-out vec4 FragColor;
-
-in vec4 vertexColor; // 从顶点着色器传来的输入变量（名称相同、类型相同）
-
-void main()
-{
-    FragColor = vertexColor;
-}
-)";
 
 int main() {
 //    u8 buf[1024 * 1024];
@@ -175,88 +145,11 @@ int main() {
     glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &nrAttributes);
     std::cout << "Maximum nr of vertex attributes supported: " << nrAttributes << std::endl;
 
-    unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertexShader, 1, &vertexShaderSource, nullptr);
-    glCompileShader(vertexShader);
-
-    int success;
-    char infoLog[512];
-
-    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-    if (!success) {
-        glGetShaderInfoLog(vertexShader, sizeof infoLog, nullptr, infoLog);
-        std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
-    }
-
-    unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 1, &fragmentShaderSource, nullptr);
-    glCompileShader(fragmentShader);
-
-    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-    if (!success) {
-        glGetShaderInfoLog(fragmentShader, sizeof infoLog, nullptr, infoLog);
-        std::cout << "ERROR::SHADER::FLAG::COMPILATION_FAILED\n" << infoLog << std::endl;
-    }
-
-    unsigned int shaderProgram = glCreateProgram();
-    glAttachShader(shaderProgram, vertexShader);
-    glAttachShader(shaderProgram, fragmentShader);
-    glLinkProgram(shaderProgram);
-
-    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
-    if (!success) {
-        glGetProgramInfoLog(shaderProgram, sizeof infoLog, nullptr, infoLog);
-        std::cout << "ERROR::SHADER::SHADER_PROGRAM::COMPILATION_FAILED\n" << infoLog << std::endl;
-    }
-    glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader);
-    glUseProgram(shaderProgram);
-
     auto deltaTime = std::chrono::milliseconds(1000 / 60);
-    auto r = 0.01f;
 
-    constexpr auto pixelsLen = Define::SCREEN_WIDTH * Define::SCREEN_HEIGHT * SCREEN_SCALE;
-    float vertices[pixelsLen * 6];
-
-    {
-        int idx = 0;
-        for (int i = 0; i < Define::SCREEN_HEIGHT; ++i) {
-            for (int j = 0; j < Define::SCREEN_WIDTH; ++j) {
-                float percentX = (float) j / Define::SCREEN_WIDTH;
-                float percentY = (float) i / Define::SCREEN_HEIGHT;
-                float x = percentX * 2.0f - 1.0f;
-                float y = percentY * 2.0f - 1.0f;
-
-                // position(x, y, z)
-                vertices[idx++] = x;
-                vertices[idx++] = y;
-                vertices[idx++] = 0.0f;
-
-                // color(r, g, b)
-//                vertices[idx++] = 0;
-//                vertices[idx++] = percentY;
-//                vertices[idx++] = 0.0f;
-                vertices[idx++] = 1.0f;
-                vertices[idx++] = 0.0f;
-                vertices[idx++] = 0.0f;
-            }
-        }
-    }
-
-//    float vertices[] = {
-//            0.5f, 0.5f, 0.0f,   // 右上角
-//            0.5f, -0.5f, 0.0f,  // 右下角
-//            -0.5f, -0.5f, 0.0f, // 左下角
-//            -0.5f, 0.5f, 0.0f   // 左上角
-//    };
-//    unsigned int indices[] = {
-//            // 注意索引从0开始!
-//            // 此例的索引(0,1,2,3)就是顶点数组vertices的下标，
-//            // 这样可以由下标代表顶点组合成矩形
-//
-//            0, 1, 3, // 第一个三角形
-//            1, 2, 3  // 第二个三角形
-//    };
+    Screen screen;
+    screen.Clear(1.0f, 0.0f, 0.0f);
+    constexpr auto pixelsLen = Screen::VERTICES_LEN / Screen::COUNT_PER_GROUP;
 
     unsigned int VBO;
     unsigned int VAO;
@@ -264,7 +157,7 @@ int main() {
     glGenBuffers(1, &VBO);
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(screen.vertices_), screen.vertices_, GL_DYNAMIC_DRAW);
 
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
@@ -282,29 +175,23 @@ int main() {
     auto start = std::chrono::high_resolution_clock::now();
     auto updated = false;
 
+    auto shader = Shader("res/vShader.vs", "res/fShader.fs");
+
     while (!glfwWindowShouldClose(window)) {
         auto end = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::seconds>(end - start);
+
         if (!updated && duration.count() > 1) {
             updated = true;
             std::cout << "update colors." << std::endl;
-            int idx = 0;
-            for (int i = 0; i < Define::SCREEN_HEIGHT; ++i) {
-                for (int j = 0; j < Define::SCREEN_WIDTH; ++j) {
-                    idx += 3;
-
-                    // color(r, g, b)
-                    vertices[idx++] = 1.0f;
-                    vertices[idx++] = 1.0f;
-                    vertices[idx++] = 0.0f;
-                }
-            }
+            screen.Clear(1.0f, 1.0f, 0.0f);
+            screen.SetPixel(40, 40, 0.0f, 1.0f, 1.0f);
 
             glBindBuffer(GL_ARRAY_BUFFER, VBO);
             void* ptr = glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
             if (ptr) {
                 // 更新数据
-                memcpy(ptr, vertices, sizeof(vertices));
+                memcpy(ptr, screen.vertices_, sizeof(screen.vertices_));
                 // 取消映射
                 glUnmapBuffer(GL_ARRAY_BUFFER);
             }
@@ -315,18 +202,14 @@ int main() {
         glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
+        shader.use();
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-        glUseProgram(shaderProgram);
         glBindVertexArray(VAO);
-//        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-//        glDrawElements(GL_POINTS, 6, GL_UNSIGNED_INT, nullptr);
         glDrawArrays(GL_POINTS, 0, pixelsLen);
         glBindVertexArray(0);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
-//        std::this_thread::sleep_for(deltaTime);
-        r += 0.001f;
     }
 
     glfwTerminate();

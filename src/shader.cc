@@ -1,5 +1,10 @@
 #include "shader.h"
 
+#include <fstream>
+#include <sstream>
+#include <iostream>
+#include <cassert>
+
 Shader::Shader(const char* vertexPath, const char* fragmentPath) {
     // 1. 从文件路径中获取顶点/片段着色器
     std::string vertexCode;
@@ -41,7 +46,7 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath) {
     glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
     if (!success) {
         glGetShaderInfoLog(vertexShader, sizeof infoLog, nullptr, infoLog);
-        std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
+        std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED" << infoLog << std::endl;
     }
 
     unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
@@ -51,7 +56,7 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath) {
     glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
     if (!success) {
         glGetShaderInfoLog(fragmentShader, sizeof infoLog, nullptr, infoLog);
-        std::cout << "ERROR::SHADER::FLAG::COMPILATION_FAILED\n" << infoLog << std::endl;
+        std::cout << "ERROR::SHADER::FLAG::COMPILATION_FAILED" << infoLog << std::endl;
     }
 
     unsigned int shaderProgram = glCreateProgram();
@@ -62,30 +67,31 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath) {
     glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
     if (!success) {
         glGetProgramInfoLog(shaderProgram, sizeof infoLog, nullptr, infoLog);
-        std::cout << "ERROR::SHADER::SHADER_PROGRAM::COMPILATION_FAILED\n" << infoLog << std::endl;
+        std::cout << "ERROR::SHADER::SHADER_PROGRAM::COMPILATION_FAILED" << infoLog << std::endl;
     }
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
 //    glUseProgram(shaderProgram);
 
-    ID = shaderProgram;
+    shaderId_ = shaderProgram;
 }
 
 void Shader::use() const {
-    glUseProgram(ID);
+    assert(shaderId_ != 0);
+    glUseProgram(shaderId_);
 }
 
 void Shader::setBool(const std::string &name, bool value) const {
-    auto vertexColorLocation = glGetUniformLocation(ID, name.c_str());
+    auto vertexColorLocation = glGetUniformLocation(shaderId_, name.c_str());
     glUniform1i(vertexColorLocation, value);
 }
 
 void Shader::setInt(const std::string &name, int value) const {
-    auto vertexColorLocation = glGetUniformLocation(ID, name.c_str());
+    auto vertexColorLocation = glGetUniformLocation(shaderId_, name.c_str());
     glUniform1i(vertexColorLocation, value);
 }
 
 void Shader::setFloat(const std::string &name, float value) const {
-    auto vertexColorLocation = glGetUniformLocation(ID, name.c_str());
+    auto vertexColorLocation = glGetUniformLocation(shaderId_, name.c_str());
     glUniform1f(vertexColorLocation, value);
 }
