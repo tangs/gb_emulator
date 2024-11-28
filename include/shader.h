@@ -7,7 +7,7 @@
 class Shader {
 public:
   // 程序ID
-  unsigned int shaderId = 0;
+  unsigned int shaderId_ = 0;
 public:
   // 构造器读取并构建着色器
   Shader(const char* vertexPath, const char* fragmentPath);

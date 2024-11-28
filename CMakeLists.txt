@@ -21,6 +21,8 @@ add_executable(emulator
         third/glad/src/glad.c
         src/main.cc
         src/shader.cc
+        src/screen.cc
+        src/cartridge.cc
 )
 target_link_libraries(
         emulator
@@ -30,6 +32,3 @@ target_link_libraries(
         ${COCOA_LIBRARY}
         ${COREGRAPHICS_LIBRARY}
 )
-
-target_link_libraries(emulator "-framework OpenGL")
-target_link_libraries(emulator "-framework GLUT")

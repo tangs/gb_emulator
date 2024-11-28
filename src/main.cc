@@ -57,29 +57,44 @@ void processInput(GLFWwindow *window) {
     }
 }
 
+void printRomInfo(CartridgeHeader* cartridge) {
+    auto licName = cartridge->get_cartridge_lic_code_name();
+    std::cout << "title:" << cartridge->title << std::endl;
+    std::cout << "version:" << (uint32_t)cartridge->version << std::endl;
+    std::cout << "lic name:" << licName << std::endl;
+
+    {
+        std::cout << "************************ LOGO ************************" << std::endl;
+        auto logoBits = cartridge->get_logo_bitmap();
+//        constexpr int WIDTH = 12;
+//        constexpr int HEIGHT = 8;
+//        constexpr int WIDTH_BITS = WIDTH / 2;
+//
+//        auto ptr = cartridge->logo;
+        for (int i = 0; i < CartridgeHeader::LOGO_HEIGHT; ++i) {
+            for (int j = 0; j < CartridgeHeader::LOGO_WIDTH; ++j) {
+                if (logoBits[i][j] == 1) {
+                    std::cout << "*";
+                    continue;
+                }
+                std::cout << " ";
+            }
+            std::cout << std::endl;
+        }
+        std::cout << "************************ LOGO ************************" << std::endl;
+    }
+}
+
 int main() {
-//    u8 buf[1024 * 1024];
-//    auto file = fopen("/Users/tangs/Documents/console_game_boy_emulator/rooms/Tetris (Japan) (En).gb", "rb");
-//    auto len = fread(buf, sizeof buf[0], sizeof buf, file);
-//    fclose(file);
-//
-//    auto* cartridge = (CartridgeHeader*)(buf + 0x100);
-//    auto licName = get_cartridge_lic_code_name(cartridge->lic_code);
-//
+    u8 buf[1024 * 1024];
+    auto file = fopen("/Users/tangs/Documents/console_game_boy_emulator/rooms/Tetris (Japan) (En).gb", "rb");
+    auto _len = fread(buf, sizeof buf[0], sizeof buf, file);
+    fclose(file);
+
+    auto* cartridge = (CartridgeHeader*)(buf + 0x100);
+    printRomInfo(cartridge);
+
 //    Graphic graphic;
-//
-//    constexpr auto w = 6;
-//    constexpr auto h = 8;
-//
-//    for (int i = 0; i < h; i++) {
-//        for (int j = 0; j < w; j++) {
-//            int idx = i * w + j;
-//            auto pixel = cartridge->logo[idx];
-//            for (int k = 0; k < 4; ++k) {
-//                graphic.pixels[i][j * 4 + k] = pixel & (1 << k);
-//            }
-//        }
-//    }
 //
 //    // 进行刷新，使内容显示到屏幕上
 ////    initscr();
@@ -148,8 +163,27 @@ int main() {
     auto deltaTime = std::chrono::milliseconds(1000 / 60);
 
     Screen screen;
-    screen.Clear(1.0f, 0.0f, 0.0f);
+    screen.Clear(1.0f, 1.0f, 0.0f);
     constexpr auto pixelsLen = Screen::VERTICES_LEN / Screen::COUNT_PER_GROUP;
+
+
+    constexpr auto w = 4;
+    constexpr auto h = 12;
+
+//    int offX = 50;
+//    int offY = 60;
+
+    screen.Clear(1.0f, 0.0f, 0.0f);
+//            screen.SetPixel(40, 40, 1.0f, 1.0f, 1.0f);
+    auto bits = cartridge->get_logo_bitmap();
+    auto offX = (Define::SCREEN_WIDTH - 48) / 2;
+    auto offY = (Define::SCREEN_HEIGHT - 8) / 2;
+    for (int i = 0; i < 8; ++i) {
+        for (int j = 0; j < 48; ++j) {
+            if (!bits[i][j]) continue;
+            screen.SetPixel(j + offX, (7 - i) + offY, 1.0f, 1.0f, 1.0f);
+        }
+    }
 
     unsigned int VBO;
     unsigned int VAO;
@@ -184,9 +218,15 @@ int main() {
         if (!updated && duration.count() > 1) {
             updated = true;
             std::cout << "update colors." << std::endl;
-            screen.Clear(1.0f, 1.0f, 0.0f);
-            screen.SetPixel(40, 40, 0.0f, 1.0f, 1.0f);
-
+//            screen.Clear(1.0f, 0.0f, 0.0f);
+//            screen.SetPixel(40, 40, 1.0f, 1.0f, 1.0f);
+//            auto bits = cartridge->get_logo_bitmap();
+//            for (int i = 0; i < 8; ++i) {
+//                for (int j = 0; j < 48; ++j) {
+//                    if (!bits[i][j]) continue;
+//                    screen.SetPixel(j + 50, (7 - i) + 75, 1.0f, 1.0f, 1.0f);
+//                }
+//            }
             glBindBuffer(GL_ARRAY_BUFFER, VBO);
             void* ptr = glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
             if (ptr) {
