@@ -42,7 +42,7 @@ void Screen::SetPixel(int x, int y, float r, float g, float b) {
     int idx = (y * Define::SCREEN_WIDTH + x) * COUNT_PER_GROUP + 3;
 //    std::cout << idx << "(" << x << ", " << y << ")" << std::endl;
     assert(x >= 0 && x < Define::SCREEN_WIDTH);
-    assert(y >= 0 && x < Define::SCREEN_HEIGHT);
+    assert(y >= 0 && y < Define::SCREEN_HEIGHT);
 
     auto& vertices = this->vertices_;
     vertices[idx++] = r;
@@ -50,13 +50,13 @@ void Screen::SetPixel(int x, int y, float r, float g, float b) {
     vertices[idx++] = b;
 }
 
-void Screen::Clear(Color color) {
+void Screen::Clear(const Color& color) {
     auto [r, g, b, _] = color;
-    Clear(r, g, b);
+    Clear((float)r / 255.f, (float)g / 255.f, (float)b / 255.f);
 }
 
-void Screen::SetPixel(Point pos, Color color) {
+void Screen::SetPixel(const Point& pos, const Color& color) {
     auto [r, g, b, _] = color;
     auto [x, y] = pos;
-    SetPixel(x, y, r, g, b);
+    SetPixel(x, y, (float)r / 255.f, (float)g / 255.f, (float)b / 255.f);
 }

@@ -57,32 +57,26 @@ void processInput(GLFWwindow *window) {
     }
 }
 
-void printRomInfo(CartridgeHeader* cartridge) {
-    auto licName = cartridge->get_cartridge_lic_code_name();
-    std::cout << "title:" << cartridge->title << std::endl;
-    std::cout << "version:" << (uint32_t)cartridge->version << std::endl;
-    std::cout << "lic name:" << licName << std::endl;
-
-    {
-        std::cout << "************************ LOGO ************************" << std::endl;
-        auto logoBits = cartridge->get_logo_bitmap();
-//        constexpr int WIDTH = 12;
-//        constexpr int HEIGHT = 8;
-//        constexpr int WIDTH_BITS = WIDTH / 2;
-//
-//        auto ptr = cartridge->logo;
-        for (int i = 0; i < CartridgeHeader::LOGO_HEIGHT; ++i) {
-            for (int j = 0; j < CartridgeHeader::LOGO_WIDTH; ++j) {
-                if (logoBits[i][j] == 1) {
-                    std::cout << "*";
-                    continue;
-                }
-                std::cout << " ";
-            }
-            std::cout << std::endl;
-        }
-        std::cout << "************************ LOGO ************************" << std::endl;
+u8 calcCheckSum(const u8* rom_data) {
+    u8 checksum = 0;
+    for (u16 address = 0x0134; address <= 0x014C; ++address) {
+        checksum = checksum - rom_data[address] - 1;
     }
+    return checksum;
+}
+
+void printRomInfo(const u8* buf) {
+    auto cartridge = (CartridgeHeader*)(buf + 0x100);
+    auto licName = cartridge->get_cartridge_lic_code_name();
+    std::cout << "title: " << cartridge->title << std::endl;
+    std::cout << "version: " << (uint32_t)cartridge->version << std::endl;
+    std::cout << "lic name: " << licName << std::endl;
+    std::cout << "cartridge type: " << (int)cartridge->cartridge_type << std::endl;
+    std::cout << "rom size: " << 32 * (1 << cartridge->rom_size) << "KB" << std::endl;
+    std::cout << "ram size: " << (int)cartridge->ram_size << std::endl;
+    auto checkSum = calcCheckSum(buf);
+    std::cout << "check sum: " << (int)cartridge->checksum << ", "
+        << (int)checkSum << ", " << (cartridge->checksum == checkSum) << std::endl;
 }
 
 int main() {
@@ -92,7 +86,7 @@ int main() {
     fclose(file);
 
     auto* cartridge = (CartridgeHeader*)(buf + 0x100);
-    printRomInfo(cartridge);
+    printRomInfo(buf);
 
 //    Graphic graphic;
 //
@@ -163,7 +157,7 @@ int main() {
     auto deltaTime = std::chrono::milliseconds(1000 / 60);
 
     Screen screen;
-    screen.Clear(1.0f, 1.0f, 0.0f);
+    screen.Clear(Color(0xff, 0, 0));
     constexpr auto pixelsLen = Screen::VERTICES_LEN / Screen::COUNT_PER_GROUP;
 
 
@@ -173,7 +167,9 @@ int main() {
 //    int offX = 50;
 //    int offY = 60;
 
-    screen.Clear(1.0f, 0.0f, 0.0f);
+    std::array<std::array<bool, Define::SCREEN_WIDTH>, Define::SCREEN_HEIGHT> dp = {};
+
+    screen.Clear({0, 0, 0});
 //            screen.SetPixel(40, 40, 1.0f, 1.0f, 1.0f);
     auto bits = cartridge->get_logo_bitmap();
     auto offX = (Define::SCREEN_WIDTH - 48) / 2;
@@ -181,7 +177,10 @@ int main() {
     for (int i = 0; i < 8; ++i) {
         for (int j = 0; j < 48; ++j) {
             if (!bits[i][j]) continue;
-            screen.SetPixel(j + offX, (7 - i) + offY, 1.0f, 1.0f, 1.0f);
+            int x = j + offX;
+            int y = (7 - i) + offY;
+            dp[y][x] = true;
+            screen.SetPixel({x, y}, {0xff, 0xff, 0x0});
         }
     }
 
@@ -213,29 +212,47 @@ int main() {
 
     while (!glfwWindowShouldClose(window)) {
         auto end = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::seconds>(end - start);
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
 
-        if (!updated && duration.count() > 1) {
-            updated = true;
-            std::cout << "update colors." << std::endl;
-//            screen.Clear(1.0f, 0.0f, 0.0f);
-//            screen.SetPixel(40, 40, 1.0f, 1.0f, 1.0f);
-//            auto bits = cartridge->get_logo_bitmap();
-//            for (int i = 0; i < 8; ++i) {
-//                for (int j = 0; j < 48; ++j) {
-//                    if (!bits[i][j]) continue;
-//                    screen.SetPixel(j + 50, (7 - i) + 75, 1.0f, 1.0f, 1.0f);
-//                }
-//            }
-            glBindBuffer(GL_ARRAY_BUFFER, VBO);
-            void* ptr = glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
-            if (ptr) {
-                // 更新数据
-                memcpy(ptr, screen.vertices_, sizeof(screen.vertices_));
-                // 取消映射
-                glUnmapBuffer(GL_ARRAY_BUFFER);
+        auto count = duration.count();
+        auto val = (u8)((std::sin((float)count / 1000.f) + 1.0f) / 2.0f * 255);
+        auto col = Color{val, 0, 0};
+        for (int i = 0; i < Define::SCREEN_HEIGHT; ++i) {
+            for (int j = 0; j < Define::SCREEN_WIDTH; ++j) {
+                if (dp[i][j]) continue;
+                screen.SetPixel({j, i}, col);
             }
         }
+        glBindBuffer(GL_ARRAY_BUFFER, VBO);
+        auto ptr = glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
+        if (ptr) {
+            // 更新数据
+            memcpy(ptr, screen.vertices_, sizeof(screen.vertices_));
+            // 取消映射
+            glUnmapBuffer(GL_ARRAY_BUFFER);
+        }
+
+//        if (!updated && duration.count() > 1) {
+//            updated = true;
+//            std::cout << "update colors." << std::endl;
+////            screen.Clear(1.0f, 0.0f, 0.0f);
+////            screen.SetPixel(40, 40, 1.0f, 1.0f, 1.0f);
+////            auto bits = cartridge->get_logo_bitmap();
+////            for (int i = 0; i < 8; ++i) {
+////                for (int j = 0; j < 48; ++j) {
+////                    if (!bits[i][j]) continue;
+////                    screen.SetPixel(j + 50, (7 - i) + 75, 1.0f, 1.0f, 1.0f);
+////                }
+////            }
+//            glBindBuffer(GL_ARRAY_BUFFER, VBO);
+//            void* ptr = glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
+//            if (ptr) {
+//                // 更新数据
+//                memcpy(ptr, screen.vertices_, sizeof(screen.vertices_));
+//                // 取消映射
+//                glUnmapBuffer(GL_ARRAY_BUFFER);
+//            }
+//        }
 
         processInput(window);
 

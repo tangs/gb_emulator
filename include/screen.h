@@ -14,7 +14,7 @@ public:
 public:
     Screen();
     void Clear(float r, float g, float b);
-    void Clear(Color color);
+    void Clear(const Color& color);
     void SetPixel(int x, int y, float r, float g, float b);
-    void SetPixel(Point pos, Color color);
+    void SetPixel(const Point& pos, const Color& color);
 };
