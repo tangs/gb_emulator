@@ -7,45 +7,7 @@
 #include "emulator.h"
 #include "graphic.h"
 #include "shader.h"
-#include "screen.h"
-
-int refresh(const char* licName, const char* title, Graphic* graphic) {
-    constexpr auto PIXEL_SCALE_X = 1;
-    constexpr auto PIXEL_SCALE_Y = 4;
-    constexpr auto W = Define::SCREEN_WIDTH / PIXEL_SCALE_X;
-    constexpr auto H = Define::SCREEN_HEIGHT / PIXEL_SCALE_Y;
-
-//    clear();
-//    mvaddstr(0, 0, licName);
-//    mvaddstr(1, 0, title);
-
-    constexpr auto OFF_ROW = 2;
-
-//    for (int i = 0; i <= W + 1; ++i) {
-//        mvaddch(OFF_ROW, i, '-');
-//        mvaddch(OFF_ROW + H + 1, i, '-');
-//    }
-//
-//    for (int i = OFF_ROW + 1; i <= H + OFF_ROW; ++i) {
-//        mvaddch(i, 0, '|');
-//        mvaddch(i, W + 1, '|');
-//    }
-
-//    for (int i = 0; i < H; ++i) {
-//        for (int j = 0; j < W; ++j) {
-//            auto pixel = graphic->pixels[i * PIXEL_SCALE_X][j * PIXEL_SCALE_Y];
-//            if (pixel != 0) {
-//                auto r = i + OFF_ROW + 1;
-//                auto c = j + 1;
-//                mvaddch(r, c, '*');
-//            }
-//        }
-//    }
-//
-//    move(LINES - 1, 0);
-//    refresh();
-    return 0;
-}
+#include "context.h"
 
 void framebuffer_size_callback([[maybe_unused]] GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
@@ -71,8 +33,27 @@ void print_rom_info(const Emulator& emulator, const u8* buf) {
         << (int)checkSum << ", " << (cartridge->checksum == checkSum) << std::endl;
 }
 
-void update() {
+static std::array<std::array<bool, Define::SCREEN_WIDTH>, Define::SCREEN_HEIGHT> dp = {};
+static auto start = std::chrono::high_resolution_clock::now();
 
+void update() {
+    auto& screen = Context::gContext.screen;
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+
+    auto count = duration.count();
+    auto val = (u8)((std::sin((float)count / 1000.f) + 1.0f) / 2.0f * 255);
+    auto col = Color{val, 0, 0};
+    auto col1 = col.reverse();
+    for (int i = 0; i < Define::SCREEN_HEIGHT; ++i) {
+        for (int j = 0; j < Define::SCREEN_WIDTH; ++j) {
+            if (dp[i][j]) {
+                screen.SetPixel({j, i}, col1);
+                continue;
+            }
+            screen.SetPixel({j, i}, col);
+        }
+    }
 }
 
 int main() {
@@ -81,10 +62,12 @@ int main() {
     auto _len = fread(buf, sizeof buf[0], sizeof buf, file);
     fclose(file);
 
-    Emulator emulator = {
+    Context::gContext.emulator = {
             .rom_data = buf,
             .rom_data_size = _len,
     };
+    auto& emulator = Context::gContext.emulator;
+
     auto* cartridge = (CartridgeHeader*)(buf + 0x100);
     print_rom_info(emulator, buf);
 
@@ -123,11 +106,10 @@ int main() {
 
     auto deltaTime = std::chrono::milliseconds(1000 / 60);
 
-    Screen screen;
+//    Screen screen;
+    auto& screen = Context::gContext.screen;
     screen.Clear(Color(0xff, 0, 0));
     constexpr auto pixelsLen = Screen::VERTICES_LEN / Screen::COUNT_PER_GROUP;
-
-    std::array<std::array<bool, Define::SCREEN_WIDTH>, Define::SCREEN_HEIGHT> dp = {};
 
     screen.Clear({0, 0, 0});
 //            screen.SetPixel(40, 40, 1.0f, 1.0f, 1.0f);
@@ -165,30 +147,15 @@ int main() {
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3* sizeof(float)));
     glEnableVertexAttribArray(1);
 
-    auto start = std::chrono::high_resolution_clock::now();
-    auto updated = false;
+//    auto start = std::chrono::high_resolution_clock::now();
 
     auto shader = Shader("res/vShader.vs", "res/fShader.fs");
 
     while (!glfwWindowShouldClose(window)) {
-        auto end = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+//        auto end = std::chrono::high_resolution_clock::now();
+//        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
 
         update();
-
-        auto count = duration.count();
-        auto val = (u8)((std::sin((float)count / 1000.f) + 1.0f) / 2.0f * 255);
-        auto col = Color{val, 0, 0};
-        auto col1 = col.reverse();
-        for (int i = 0; i < Define::SCREEN_HEIGHT; ++i) {
-            for (int j = 0; j < Define::SCREEN_WIDTH; ++j) {
-                if (dp[i][j]) {
-                    screen.SetPixel({j, i}, col1);
-                    continue;
-                }
-                screen.SetPixel({j, i}, col);
-            }
-        }
 
         glBindBuffer(GL_ARRAY_BUFFER, VBO);
         auto ptr = glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
