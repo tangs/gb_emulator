@@ -9,8 +9,8 @@ public:
   constexpr static i32 LOGO_HEIGHT = 2 * 4;
   using LOGO_BITS = std::array<std::array<bool, LOGO_WIDTH>, LOGO_HEIGHT>;
 public:
-  const c8* get_cartridge_lic_code_name();
-  LOGO_BITS get_logo_bitmap();
+  [[nodiscard]] const c8* get_cartridge_lic_code_name() const;
+  [[nodiscard]] LOGO_BITS get_logo_bitmap() const;
 public:
   u8 entry[4];
   u8 logo[0x30];

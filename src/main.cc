@@ -1,10 +1,10 @@
-#include <print>
 #include <iostream>
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
 #include "cartridge.h"
+#include "emulator.h"
 #include "graphic.h"
 #include "shader.h"
 #include "screen.h"
@@ -51,21 +51,13 @@ void framebuffer_size_callback([[maybe_unused]] GLFWwindow* window, int width, i
     glViewport(0, 0, width, height);
 }
 
-void processInput(GLFWwindow *window) {
+void process_input(GLFWwindow *window) {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
         glfwSetWindowShouldClose(window, true);
     }
 }
 
-u8 calcCheckSum(const u8* rom_data) {
-    u8 checksum = 0;
-    for (u16 address = 0x0134; address <= 0x014C; ++address) {
-        checksum = checksum - rom_data[address] - 1;
-    }
-    return checksum;
-}
-
-void printRomInfo(const u8* buf) {
+void print_rom_info(const Emulator& emulator, const u8* buf) {
     auto cartridge = (CartridgeHeader*)(buf + 0x100);
     auto licName = cartridge->get_cartridge_lic_code_name();
     std::cout << "title: " << cartridge->title << std::endl;
@@ -74,9 +66,13 @@ void printRomInfo(const u8* buf) {
     std::cout << "cartridge type: " << (int)cartridge->cartridge_type << std::endl;
     std::cout << "rom size: " << 32 * (1 << cartridge->rom_size) << "KB" << std::endl;
     std::cout << "ram size: " << (int)cartridge->ram_size << std::endl;
-    auto checkSum = calcCheckSum(buf);
+    auto checkSum = emulator.check_sum();
     std::cout << "check sum: " << (int)cartridge->checksum << ", "
         << (int)checkSum << ", " << (cartridge->checksum == checkSum) << std::endl;
+}
+
+void update() {
+
 }
 
 int main() {
@@ -85,41 +81,12 @@ int main() {
     auto _len = fread(buf, sizeof buf[0], sizeof buf, file);
     fclose(file);
 
+    Emulator emulator = {
+            .rom_data = buf,
+            .rom_data_size = _len,
+    };
     auto* cartridge = (CartridgeHeader*)(buf + 0x100);
-    printRomInfo(buf);
-
-//    Graphic graphic;
-//
-//    // 进行刷新，使内容显示到屏幕上
-////    initscr();
-////    cbreak();
-////    noecho();
-////
-////    mvaddstr(0, 0, "+++++++++++++++++++++++++");
-////    mvaddstr(LINES - 1, 0, "-------------------------");
-////    mvaddstr(1, 0, "**********");
-////    mvaddstr(2, 0, "** ** * **");
-////    move(3, 0);
-////    refresh();
-//
-//    double delayTime = 1.0 / 60;
-//    for (int i = 0; i < 10000; ++i) {
-//        usleep((unsigned int)(delayTime * 1000 * 1000));
-//
-//        refresh(licName, cartridge->title, &graphic);
-////        auto str = std::to_string(i);
-////
-////        clear();
-////        mvaddstr(0, 0, "+++++++++++++++++++++++++");
-////        mvaddstr(LINES - 1, 0, "-------------------------");
-////        mvaddstr(1, 0, str.c_str());
-////        mvaddstr(2, 0, str.c_str());
-////        move(3, 0);
-////        refresh();
-//    }
-
-//    usleep(100 * 1000 * 1000);
-//    endwin();
+    print_rom_info(emulator, buf);
 
     constexpr auto SCREEN_SCALE = 1;
 
@@ -132,7 +99,7 @@ int main() {
     auto window = glfwCreateWindow(
             Define::SCREEN_WIDTH * SCREEN_SCALE,
             Define::SCREEN_HEIGHT * SCREEN_SCALE,
-            "LearnOpenGL", nullptr, nullptr);
+            "Game Boy", nullptr, nullptr);
 
     if (window == nullptr) {
         std::cout << "Failed to create GLFW window" << std::endl;
@@ -159,13 +126,6 @@ int main() {
     Screen screen;
     screen.Clear(Color(0xff, 0, 0));
     constexpr auto pixelsLen = Screen::VERTICES_LEN / Screen::COUNT_PER_GROUP;
-
-
-    constexpr auto w = 4;
-    constexpr auto h = 12;
-
-//    int offX = 50;
-//    int offY = 60;
 
     std::array<std::array<bool, Define::SCREEN_WIDTH>, Define::SCREEN_HEIGHT> dp = {};
 
@@ -214,6 +174,8 @@ int main() {
         auto end = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
 
+        update();
+
         auto count = duration.count();
         auto val = (u8)((std::sin((float)count / 1000.f) + 1.0f) / 2.0f * 255);
         auto col = Color{val, 0, 0};
@@ -227,6 +189,7 @@ int main() {
                 screen.SetPixel({j, i}, col);
             }
         }
+
         glBindBuffer(GL_ARRAY_BUFFER, VBO);
         auto ptr = glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
         if (ptr) {
@@ -236,29 +199,7 @@ int main() {
             glUnmapBuffer(GL_ARRAY_BUFFER);
         }
 
-//        if (!updated && duration.count() > 1) {
-//            updated = true;
-//            std::cout << "update colors." << std::endl;
-////            screen.Clear(1.0f, 0.0f, 0.0f);
-////            screen.SetPixel(40, 40, 1.0f, 1.0f, 1.0f);
-////            auto bits = cartridge->get_logo_bitmap();
-////            for (int i = 0; i < 8; ++i) {
-////                for (int j = 0; j < 48; ++j) {
-////                    if (!bits[i][j]) continue;
-////                    screen.SetPixel(j + 50, (7 - i) + 75, 1.0f, 1.0f, 1.0f);
-////                }
-////            }
-//            glBindBuffer(GL_ARRAY_BUFFER, VBO);
-//            void* ptr = glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
-//            if (ptr) {
-//                // 更新数据
-//                memcpy(ptr, screen.vertices_, sizeof(screen.vertices_));
-//                // 取消映射
-//                glUnmapBuffer(GL_ARRAY_BUFFER);
-//            }
-//        }
-
-        processInput(window);
+        process_input(window);
 
         glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
         glClear(GL_COLOR_BUFFER_BIT);

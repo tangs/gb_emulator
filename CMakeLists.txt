@@ -23,6 +23,7 @@ add_executable(emulator
         src/shader.cc
         src/screen.cc
         src/cartridge.cc
+        src/emulator.cc
 )
 target_link_libraries(
         emulator

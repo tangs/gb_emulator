@@ -1,6 +1,6 @@
 #include "cartridge.h"
 
-const c8* CartridgeHeader::get_cartridge_lic_code_name() {
+const c8* CartridgeHeader::get_cartridge_lic_code_name() const {
     switch(lic_code) {
         case 0x00 : return "None";
         case 0x01 : return "Nintendo R&D1";
@@ -68,7 +68,7 @@ const c8* CartridgeHeader::get_cartridge_lic_code_name() {
     return "UNKNOWN";
 }
 
-CartridgeHeader::LOGO_BITS CartridgeHeader::get_logo_bitmap() {
+CartridgeHeader::LOGO_BITS CartridgeHeader::get_logo_bitmap() const {
     CartridgeHeader::LOGO_BITS bits = {};
     for (int i = 0; i < 2; ++i) {
         for (int j = 0; j < 24; ++j) {
@@ -82,7 +82,7 @@ CartridgeHeader::LOGO_BITS CartridgeHeader::get_logo_bitmap() {
                 if ((bit & (1 << (7 - k))) == 0) continue;
                 int r = row + k / 4;
                 int c = col + k % 4;
-                bits[r][c] = 1;
+                bits[r][c] = true;
             }
 
         }
