@@ -9,17 +9,17 @@
 #include "shader.h"
 #include "context.h"
 
-void framebuffer_size_callback([[maybe_unused]] GLFWwindow* window, int width, int height) {
+static void framebuffer_size_callback([[maybe_unused]] GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
 }
 
-void process_input(GLFWwindow *window) {
+static void process_input(GLFWwindow *window) {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
         glfwSetWindowShouldClose(window, true);
     }
 }
 
-void print_rom_info(const Emulator& emulator, const u8* buf) {
+static void print_rom_info(const Emulator& emulator, const u8* buf) {
     auto cartridge = (CartridgeHeader*)(buf + 0x100);
     auto licName = cartridge->get_cartridge_lic_code_name();
     std::cout << "title: " << cartridge->title << std::endl;
@@ -33,40 +33,22 @@ void print_rom_info(const Emulator& emulator, const u8* buf) {
         << (int)checkSum << ", " << (cartridge->checksum == checkSum) << std::endl;
 }
 
-static std::array<std::array<bool, Define::SCREEN_WIDTH>, Define::SCREEN_HEIGHT> dp = {};
-static auto start = std::chrono::high_resolution_clock::now();
-
-void update() {
-    auto& screen = Context::gContext.screen;
-    auto end = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-
-    auto count = duration.count();
-    auto val = (u8)((std::sin((float)count / 1000.f) + 1.0f) / 2.0f * 255);
-    auto col = Color{val, 0, 0};
-    auto col1 = col.reverse();
-    for (int i = 0; i < Define::SCREEN_HEIGHT; ++i) {
-        for (int j = 0; j < Define::SCREEN_WIDTH; ++j) {
-            if (dp[i][j]) {
-                screen.SetPixel({j, i}, col1);
-                continue;
-            }
-            screen.SetPixel({j, i}, col);
-        }
-    }
-}
-
 int main() {
     u8 buf[1024 * 1024];
     auto file = fopen("/Users/tangs/Documents/console_game_boy_emulator/rooms/Tetris (Japan) (En).gb", "rb");
     auto _len = fread(buf, sizeof buf[0], sizeof buf, file);
     fclose(file);
 
-    Context::gContext.emulator = {
-            .rom_data = buf,
-            .rom_data_size = _len,
+    Context context = {
+            .emulator = {
+                    .rom_data = buf,
+                    .rom_data_size = _len,
+            },
     };
-    auto& emulator = Context::gContext.emulator;
+
+    auto& emulator = context.emulator;
+    auto& screen = context.screen;
+    auto& dp = context.dp;
 
     auto* cartridge = (CartridgeHeader*)(buf + 0x100);
     print_rom_info(emulator, buf);
@@ -107,7 +89,6 @@ int main() {
     auto deltaTime = std::chrono::milliseconds(1000 / 60);
 
 //    Screen screen;
-    auto& screen = Context::gContext.screen;
     screen.Clear(Color(0xff, 0, 0));
     constexpr auto pixelsLen = Screen::VERTICES_LEN / Screen::COUNT_PER_GROUP;
 
@@ -116,6 +97,7 @@ int main() {
     auto bits = cartridge->get_logo_bitmap();
     auto offX = (Define::SCREEN_WIDTH - 48) / 2;
     auto offY = (Define::SCREEN_HEIGHT - 8) / 2;
+
     for (int i = 0; i < 8; ++i) {
         for (int j = 0; j < 48; ++j) {
             if (!bits[i][j]) continue;
@@ -147,15 +129,13 @@ int main() {
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3* sizeof(float)));
     glEnableVertexAttribArray(1);
 
-//    auto start = std::chrono::high_resolution_clock::now();
-
     auto shader = Shader("res/vShader.vs", "res/fShader.fs");
 
-    while (!glfwWindowShouldClose(window)) {
-//        auto end = std::chrono::high_resolution_clock::now();
-//        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    context.start();
 
-        update();
+    while (!glfwWindowShouldClose(window)) {
+
+        context.update();
 
         glBindBuffer(GL_ARRAY_BUFFER, VBO);
         auto ptr = glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);

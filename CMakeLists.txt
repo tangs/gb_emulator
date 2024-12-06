@@ -24,6 +24,7 @@ add_executable(emulator
         src/screen.cc
         src/cartridge.cc
         src/emulator.cc
+        src/context.cc
 )
 target_link_libraries(
         emulator
