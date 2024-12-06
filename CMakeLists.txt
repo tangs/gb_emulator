@@ -12,9 +12,9 @@ link_directories(
         ./third/glfw-3.4/lib-arm64
 )
 
-find_library(COREFOUNDATION_LIBRARY CoreFoundation)
 find_library(IOKIT_LIBRARY IOKit)
 find_library(COCOA_LIBRARY Cocoa)
+find_library(COREFOUNDATION_LIBRARY CoreFoundation)
 find_library(COREGRAPHICS_LIBRARY CoreGraphics)
 
 add_executable(emulator
