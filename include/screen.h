@@ -13,8 +13,8 @@ public:
     float vertices_[VERTICES_LEN] = {};
 public:
     Screen();
-    void Clear(float r, float g, float b);
-    void Clear(const Color& color);
-    void SetPixel(int x, int y, float r, float g, float b);
-    void SetPixel(const Point& pos, const Color& color);
+    void clear(float r, float g, float b);
+    void clear(const Color& color);
+    void setPixel(int x, int y, float r, float g, float b);
+    void setPixel(const Point& pos, const Color& color);
 };

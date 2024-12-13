@@ -28,7 +28,7 @@ static void print_rom_info(const Emulator& emulator, const u8* buf) {
     std::cout << "cartridge type: " << (int)cartridge->cartridge_type << std::endl;
     std::cout << "rom size: " << 32 * (1 << cartridge->rom_size) << "KB" << std::endl;
     std::cout << "ram size: " << (int)cartridge->ram_size << std::endl;
-    auto checkSum = emulator.check_sum();
+    auto checkSum = emulator.checkSum();
     std::cout << "check sum: " << (int)cartridge->checksum << ", "
         << (int)checkSum << ", " << (cartridge->checksum == checkSum) << std::endl;
 }
@@ -89,10 +89,10 @@ int main() {
     auto deltaTime = std::chrono::milliseconds(1000 / 60);
 
 //    Screen screen;
-    screen.Clear(Color(0xff, 0, 0));
+    screen.clear(Color(0xff, 0, 0));
     constexpr auto pixelsLen = Screen::VERTICES_LEN / Screen::COUNT_PER_GROUP;
 
-    screen.Clear({0, 0, 0});
+    screen.clear({0, 0, 0});
 //            screen.SetPixel(40, 40, 1.0f, 1.0f, 1.0f);
     auto bits = cartridge->get_logo_bitmap();
     auto offX = (Define::SCREEN_WIDTH - 48) / 2;
@@ -104,7 +104,7 @@ int main() {
             int x = j + offX;
             int y = (7 - i) + offY;
             dp[y][x] = true;
-            screen.SetPixel({x, y}, {0xff, 0xff, 0x0});
+            screen.setPixel({x, y}, {0xff, 0xff, 0x0});
         }
     }
 

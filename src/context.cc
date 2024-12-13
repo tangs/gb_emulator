@@ -8,6 +8,8 @@ void Context::start() {
 }
 
 void Context::update() {
+
+
     auto& screen_ = screen;
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - startTime);
@@ -18,7 +20,7 @@ void Context::update() {
     auto col1 = col.reverse();
     for (int i = 0; i < Define::SCREEN_HEIGHT; ++i) {
         for (int j = 0; j < Define::SCREEN_WIDTH; ++j) {
-            screen_.SetPixel({j, i}, dp[i][j] ? col1 : col);
+            screen_.setPixel({j, i}, dp[i][j] ? col1 : col);
         }
     }
 }
