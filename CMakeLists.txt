@@ -26,6 +26,7 @@ add_executable(emulator
         src/emulator.cc
         src/context.cc
         src/cpu.cc
+        src/instructions.cc
 )
 target_link_libraries(
         emulator

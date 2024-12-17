@@ -12,5 +12,8 @@ using i16   = int16_t;
 using i32   = int32_t;
 using i64   = int64_t;
 
+using f32   = float;
+using f64   = double;
+
 using c8 = char;
 using usize = u64;
