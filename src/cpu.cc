@@ -27,7 +27,7 @@ void CPU::step(Emulator* emu) {
         auto* instruction = instructions_map[opcode];
         if (instruction == nullptr) {
             char msg[256];
-            snprintf(msg, sizeof msg, "Instruction 0x%02X not present.", (u32)opcode);
+            snprintf(msg, sizeof msg, "Instruction 0x%02X not present, pc: %d.", (u32)opcode, pc - 1);
             std::cerr << msg << std::endl;
             assert(false);
         }

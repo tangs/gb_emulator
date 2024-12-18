@@ -16,7 +16,7 @@ u8 Emulator::checkSum() const {
     return checksum;
 }
 
-int Emulator::init(const void *cartridge_data, usize cartridge_data_size) {
+int Emulator::init() {
     cpu.init();
     return 0;
 }

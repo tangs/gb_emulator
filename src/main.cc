@@ -131,7 +131,7 @@ int main() {
 
     auto shader = Shader("res/vShader.vs", "res/fShader.fs");
 
-    context.start();
+    context.init();
 
     while (!glfwWindowShouldClose(window)) {
 

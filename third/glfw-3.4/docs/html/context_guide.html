@@ -182,7 +182,7 @@ Loading extension with a loader library</h2>
 <div class="line"> </div>
 <div class="line">gladLoadGLLoader((GLADloadproc) <a class="code hl_function" href="group__context.html#ga35f1837e6f666781842483937612f163">glfwGetProcAddress</a>);</div>
 <div class="ttc" id="agroup__context_html_ga35f1837e6f666781842483937612f163"><div class="ttname"><a href="group__context.html#ga35f1837e6f666781842483937612f163">glfwGetProcAddress</a></div><div class="ttdeci">GLFWglproc glfwGetProcAddress(const char *procname)</div><div class="ttdoc">Returns the address of the specified function for the current context.</div></div>
-</div><!-- fragment --><p>Once glad has been loaded, you have access to all OpenGL core and extension functions supported by both the context you created and the glad loader you generated. After that, you are ready to start rendering.</p>
+</div><!-- fragment --><p>Once glad has been loaded, you have access to all OpenGL core and extension functions supported by both the context you created and the glad loader you generated. After that, you are ready to init rendering.</p>
 <p>You can specify a minimum required OpenGL or OpenGL ES version with <a class="el" href="window_guide.html#window_hints_ctx">context hints</a>. If your needs are more complex, you can check the actual OpenGL or OpenGL ES version with <a class="el" href="window_guide.html#window_attribs_ctx">context attributes</a>, or you can check whether a specific version is supported by the current context with the <code>GLAD_GL_VERSION_x_x</code> booleans.</p>
 <div class="fragment"><div class="line"><span class="keywordflow">if</span> (GLAD_GL_VERSION_3_2)</div>
 <div class="line">{</div>

@@ -9,7 +9,7 @@ public:
 public:
   [[nodiscard]] u8 checkSum() const;
 public:
-  int init(const void* cartridge_data, usize cartridge_data_size);
+  int init();
   void update(f64 delta_time);
   void tick(u32 mcycles);
   void close();
