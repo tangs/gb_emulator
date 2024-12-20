@@ -17,24 +17,22 @@ void CPU::init() {
 }
 
 void CPU::step(Emulator* emu) {
-    if(!halted)
-    {
-        // fetch opcode.
-        u8 opcode = emu->bus_read(pc);
-        // increase counter.
-        ++pc;
-        // execute opcode.
-        auto* instruction = instructions_map[opcode];
-        if (instruction == nullptr) {
-            char msg[256];
-            snprintf(msg, sizeof msg, "Instruction 0x%02X not present, pc: %d.", (u32)opcode, pc - 1);
-            std::cerr << msg << std::endl;
-            assert(false);
-        }
-        // TODO...
-    }
-    else
-    {
+    if (halted) {
         emu->tick(1);
+        return;
     }
+
+    // fetch opcode.
+    u8 opcode = emu->bus_read(pc);
+    // increase counter.
+    ++pc;
+    // execute opcode.
+    auto* instruction = instructions_map[opcode];
+    if (instruction == nullptr) {
+        char msg[256];
+        snprintf(msg, sizeof msg, "Instruction 0x%02X not present, pc: %d.", (u32)opcode, pc - 1);
+        std::cerr << msg << std::endl;
+        assert(false);
+    }
+    // TODO...
 }
